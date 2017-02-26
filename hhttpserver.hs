@@ -1,7 +1,7 @@
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import Network.Socket.ByteString
 import qualified Data.ByteString.Char8 as C
-import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString as B
 import Control.Concurrent
 import Control.Exception
 
@@ -27,13 +27,13 @@ respond :: Socket -> IO ()
 respond conn = do
   incoming <- recv conn incomingBufferSize
   let requestedLocation = location incoming
-  file <- try $ readFile $ C.unpack requestedLocation
-  send conn $ C.pack $ response file
+  file <- try $ B.readFile $ C.unpack requestedLocation
+  send conn $ response file
   close conn
 
-response :: Either SomeException String -> String
-response (Left _) = header404
-response (Right fileContents) = headerOkText ++ fileContents
+response :: Either SomeException B.ByteString -> B.ByteString
+response (Left _) = C.pack header404
+response (Right fileContents) = C.pack headerOkText `B.append` fileContents
 
 headerOkText = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"
 header404 = "HTTP/1.1 404\r\n\r\n"
