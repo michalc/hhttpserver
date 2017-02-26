@@ -22,6 +22,8 @@ mimeTypes = Map.fromList [
     (".jpeg", "image/jpeg")
   ]
 defaultMime = "application/octet-stream"
+headerOkText = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
+header404 = "HTTP/1.1 404\r\n\r\n"
 
 main = do
   sock <- socket AF_INET Stream 0
@@ -50,9 +52,6 @@ response (Right fileContents) extension = C.pack headerWithMime `B.append` fileC
   where headerWithMime = printf headerOkText $ mimeForExtension extension
 
 mimeForExtension = flip (Map.findWithDefault defaultMime) mimeTypes
-
-headerOkText = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
-header404 = "HTTP/1.1 404\r\n\r\n"
 
 -- Extremely dirty way of getting location, probably unsafe!
 location = C.unpack . C.tail . head . tail . C.split ' '
