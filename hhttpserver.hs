@@ -53,5 +53,5 @@ headerOkText = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
 header404 = "HTTP/1.1 404\r\n\r\n"
 
 -- Extremely dirty way of getting location, probably unsafe!
-location httpData = C.unpack $ C.tail $ C.split ' ' httpData !! 1
+location = C.unpack . C.tail . head . tail . C.split ' '
 
