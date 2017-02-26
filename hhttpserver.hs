@@ -4,11 +4,24 @@ import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString as B
 import Control.Concurrent
 import Control.Exception
+import qualified Data.Map.Strict as Map
+import System.FilePath.Posix
+import Text.Printf
 
 -- This is most likely really insecure with non-existant error handling
 
 port = 8080
 incomingBufferSize = 16384
+mimeTypes = Map.fromList [
+    (".htm", "text/html"),
+    (".html", "text/html"),
+    (".js", "application/javascript"),
+    (".css", "text/css"),
+    (".png", "image/png"),
+    (".jpg", "image/jpeg"),
+    (".jpeg", "image/jpeg")
+  ]
+defaultMime = "application/octet-stream"
 
 main = do
   sock <- socket AF_INET Stream 0
@@ -27,17 +40,18 @@ respond :: Socket -> IO ()
 respond conn = do
   incoming <- recv conn incomingBufferSize
   let requestedLocation = location incoming
-  file <- try $ B.readFile $ C.unpack requestedLocation
-  send conn $ response file
+  file <- try $ B.readFile requestedLocation
+  send conn $ response file $ takeExtension requestedLocation
   close conn
 
-response :: Either SomeException B.ByteString -> B.ByteString
-response (Left _) = C.pack header404
-response (Right fileContents) = C.pack headerOkText `B.append` fileContents
+response :: Either SomeException B.ByteString -> String -> B.ByteString
+response (Left _) extension = C.pack header404
+response (Right fileContents) extension = C.pack headerWithMime `B.append` fileContents
+  where headerWithMime = printf headerOkText $ Map.findWithDefault defaultMime extension mimeTypes
 
-headerOkText = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"
+headerOkText = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
 header404 = "HTTP/1.1 404\r\n\r\n"
 
--- Extremely dirty way of getting location
-location httpData = C.tail $ C.split ' ' httpData !! 1
+-- Extremely dirty way of getting location, probably unsafe!
+location httpData = C.unpack $ C.tail $ C.split ' ' httpData !! 1
 
