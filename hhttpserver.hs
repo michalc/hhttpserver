@@ -3,6 +3,7 @@ import Network.Socket.ByteString
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Lazy as B
 import Control.Concurrent
+import Control.Exception
 
 -- This is most likely really insecure with non-existant error handling
 
@@ -26,11 +27,16 @@ respond :: Socket -> IO ()
 respond conn = do
   incoming <- recv conn incomingBufferSize
   let requestedLocation = location incoming
-  file <- readFile $ C.unpack requestedLocation
-  send conn $ C.pack $ header ++ file
+  file <- try $ readFile $ C.unpack requestedLocation
+  send conn $ C.pack $ response file
   close conn
 
-header = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"
+response :: Either SomeException String -> String
+response (Left _) = header404
+response (Right fileContents) = headerOkText ++ fileContents
+
+headerOkText = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"
+header404 = "HTTP/1.1 404\r\n\r\n"
 
 -- Extremely dirty way of getting location
 location httpData = C.tail $ C.split ' ' httpData !! 1
