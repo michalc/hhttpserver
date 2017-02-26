@@ -47,7 +47,9 @@ respond conn = do
 response :: Either SomeException B.ByteString -> String -> B.ByteString
 response (Left _) extension = C.pack header404
 response (Right fileContents) extension = C.pack headerWithMime `B.append` fileContents
-  where headerWithMime = printf headerOkText $ Map.findWithDefault defaultMime extension mimeTypes
+  where headerWithMime = printf headerOkText $ mimeForExtension extension
+
+mimeForExtension = flip (Map.findWithDefault defaultMime) mimeTypes
 
 headerOkText = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
 header404 = "HTTP/1.1 404\r\n\r\n"
