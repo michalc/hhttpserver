@@ -12,14 +12,14 @@ incomingBufferSize = 16384
 main = do
   sock <- socket AF_INET Stream 0
   setSocketOption sock ReuseAddr 1
-  bind sock (SockAddrInet port iNADDR_ANY)
+  bind sock $ SockAddrInet port iNADDR_ANY
   listen sock sOMAXCONN
   mainLoop sock
 
 mainLoop :: Socket -> IO ()
 mainLoop sock = do
   (conn, _) <- accept sock
-  forkIO (respond conn)
+  forkIO $ respond conn
   mainLoop sock
 
 respond :: Socket -> IO ()
