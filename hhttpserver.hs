@@ -10,8 +10,6 @@ import System.FilePath.Posix
 import System.Directory (doesFileExist)
 import Text.Printf
 
--- This is all most likely really insecure, returning *any* files
-
 port = 8080
 incomingBufferSize = 16384
 mimeTypes = Map.fromList [
@@ -50,12 +48,11 @@ handle conn = do
       fileContents <- try $ response unsafeLocation
       send conn $ contentsOr500 fileContents
   else
-    send conn $ C.pack header500
+    send conn $ C.pack header404
   close conn
   where
-    -- Extremely dirty way of getting location, probably unsafe!
     extractLocation = C.unpack . C.tail . head . tail . C.split ' '
-    isSafeLocation location = ".." `isInfixOf` location
+    isSafeLocation location = not $ ".." `isInfixOf` location
 
 contentsOr500 :: Either SomeException B.ByteString -> B.ByteString
 contentsOr500 (Left _) = C.pack header500
