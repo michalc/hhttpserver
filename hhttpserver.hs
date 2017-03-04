@@ -2,6 +2,7 @@ import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import Network.Socket.ByteString
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString as B
+import Data.List
 import Control.Concurrent
 import Control.Exception (SomeException, try)
 import qualified Data.Map.Strict as Map
@@ -43,12 +44,18 @@ mainLoop sock = do
 handle :: Socket -> IO ()
 handle conn = do
   incoming <- recv conn incomingBufferSize
-  fileContents <- try $ response $ location incoming
-  send conn $ contentsOr500 fileContents
+  let unsafeLocation = extractLocation incoming
+  if isSafeLocation unsafeLocation then
+    do
+      fileContents <- try $ response unsafeLocation
+      send conn $ contentsOr500 fileContents
+  else
+    send conn $ C.pack header500
   close conn
   where
     -- Extremely dirty way of getting location, probably unsafe!
-    location = C.unpack . C.tail . head . tail . C.split ' '
+    extractLocation = C.unpack . C.tail . head . tail . C.split ' '
+    isSafeLocation location = ".." `isInfixOf` location
 
 contentsOr500 :: Either SomeException B.ByteString -> B.ByteString
 contentsOr500 (Left _) = C.pack header500
