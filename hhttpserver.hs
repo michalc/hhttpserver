@@ -3,7 +3,7 @@ import Network.Socket.ByteString
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString as B
 import Control.Concurrent
-import Control.Exception
+import Control.Exception (SomeException, try)
 import qualified Data.Map.Strict as Map
 import System.FilePath.Posix
 import Text.Printf
@@ -35,20 +35,25 @@ main = do
 mainLoop :: Socket -> IO ()
 mainLoop sock = do
   (conn, _) <- accept sock
-  forkIO $ respond conn
+  forkIO $ handle conn
   mainLoop sock
 
-respond :: Socket -> IO ()
-respond conn = do
+handle :: Socket -> IO ()
+handle conn = do
   incoming <- recv conn incomingBufferSize
   let requestedLocation = location incoming
-  file <- try $ B.readFile requestedLocation
-  send conn $ response file $ takeExtension requestedLocation
+  responseText <- response requestedLocation
+  send conn responseText 
   close conn
 
-response :: Either SomeException B.ByteString -> String -> B.ByteString
-response (Left _) extension = C.pack header404
-response (Right fileContents) extension = C.pack headerWithMime `B.append` fileContents
+response :: String -> IO (B.ByteString)
+response requestedLocation = do
+  file <- try $ B.readFile requestedLocation
+  return (staticFileContents file $ takeExtension requestedLocation)
+
+staticFileContents :: Either SomeException B.ByteString -> String -> B.ByteString
+staticFileContents (Left _) extension = C.pack header404
+staticFileContents (Right fileContents) extension = C.pack headerWithMime `B.append` fileContents
   where headerWithMime = printf headerOkText $ mimeForExtension extension
 
 mimeForExtension = flip (Map.findWithDefault defaultMime) mimeTypes
