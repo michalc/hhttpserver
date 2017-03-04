@@ -6,9 +6,10 @@ import Control.Concurrent
 import Control.Exception (SomeException, try)
 import qualified Data.Map.Strict as Map
 import System.FilePath.Posix
+import System.Directory (doesFileExist)
 import Text.Printf
 
--- This is most likely really insecure with non-existant error handling
+-- This is all most likely really insecure, returning *any* files
 
 port = 8080
 incomingBufferSize = 16384
@@ -24,6 +25,7 @@ mimeTypes = Map.fromList [
 defaultMime = "application/octet-stream"
 headerOkText = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
 header404 = "HTTP/1.1 404\r\n\r\n"
+header500 = "HTTP/1.1 500\r\n\r\n"
 
 main = do
   sock <- socket AF_INET Stream 0
@@ -41,23 +43,29 @@ mainLoop sock = do
 handle :: Socket -> IO ()
 handle conn = do
   incoming <- recv conn incomingBufferSize
-  responseText <- response $ location incoming
-  send conn responseText 
+  fileContents <- try $ response $ location incoming
+  send conn $ contentsOr500 fileContents
   close conn
   where
     -- Extremely dirty way of getting location, probably unsafe!
     location = C.unpack . C.tail . head . tail . C.split ' '
 
+contentsOr500 :: Either SomeException B.ByteString -> B.ByteString
+contentsOr500 (Left _) = C.pack header500
+contentsOr500 (Right contents) = contents
+
 response :: String -> IO (B.ByteString)
 response requestedLocation = do
-  file <- try $ B.readFile requestedLocation
-  return (staticFileContents file $ takeExtension requestedLocation)
+  exists <- doesFileExist requestedLocation
+  if exists then
+    do
+      file <- B.readFile requestedLocation
+      return $ fullResponse file $ takeExtension requestedLocation
+    else
+      return $ C.pack header404
 
-staticFileContents :: Either SomeException B.ByteString -> String -> B.ByteString
-staticFileContents (Left _) extension = C.pack header404
-staticFileContents (Right fileContents) extension = fullResponse extension fileContents
-
-fullResponse extension contents = C.pack headerWithMime `B.append` contents
+fullResponse :: B.ByteString -> String -> B.ByteString
+fullResponse contents extension = C.pack headerWithMime `B.append` contents
   where
     headerWithMime = printf headerOkText $ mimeForExtension extension
     mimeForExtension = flip (Map.findWithDefault defaultMime) mimeTypes
