@@ -44,6 +44,9 @@ handle conn = do
   responseText <- response $ location incoming
   send conn responseText 
   close conn
+  where
+    -- Extremely dirty way of getting location, probably unsafe!
+    location = C.unpack . C.tail . head . tail . C.split ' '
 
 response :: String -> IO (B.ByteString)
 response requestedLocation = do
@@ -52,11 +55,9 @@ response requestedLocation = do
 
 staticFileContents :: Either SomeException B.ByteString -> String -> B.ByteString
 staticFileContents (Left _) extension = C.pack header404
-staticFileContents (Right fileContents) extension = C.pack headerWithMime `B.append` fileContents
-  where headerWithMime = printf headerOkText $ mimeForExtension extension
+staticFileContents (Right fileContents) extension = fullResponse extension fileContents
 
-mimeForExtension = flip (Map.findWithDefault defaultMime) mimeTypes
-
--- Extremely dirty way of getting location, probably unsafe!
-location = C.unpack . C.tail . head . tail . C.split ' '
-
+fullResponse extension contents = C.pack headerWithMime `B.append` contents
+  where
+    headerWithMime = printf headerOkText $ mimeForExtension extension
+    mimeForExtension = flip (Map.findWithDefault defaultMime) mimeTypes
