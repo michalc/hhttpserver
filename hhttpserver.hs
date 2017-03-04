@@ -41,8 +41,7 @@ mainLoop sock = do
 handle :: Socket -> IO ()
 handle conn = do
   incoming <- recv conn incomingBufferSize
-  let requestedLocation = location incoming
-  responseText <- response requestedLocation
+  responseText <- response $ location incoming
   send conn responseText 
   close conn
 
