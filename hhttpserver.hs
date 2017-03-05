@@ -5,6 +5,7 @@ import qualified Data.ByteString as B
 import Data.List
 import Control.Concurrent
 import Control.Exception (SomeException, try)
+import Control.Monad
 import qualified Data.Map.Strict as Map
 import System.FilePath.Posix
 import System.Directory (doesFileExist)
@@ -50,24 +51,16 @@ handle conn = do
 
 responseForLocation :: String -> IO (B.ByteString)
 responseForLocation location = do
-  if isSafeLocation location then
-    do
-      contents <- try $ getFileContents location
-      return $ contentsOr500 contents
+  -- Suspect this is not lazy, and always check location
+  results <- sequence [return (isSafeLocation location), doesFileExist location]
+  let accessFile = all (== True) results
+  if accessFile then do
+    contents <- try $ B.readFile location
+    return $ contentsOr500 contents
   else
     return $ C.pack header404
   where
     isSafeLocation location = not $ ".." `isInfixOf` location
-
-getFileContents :: String -> IO (B.ByteString)
-getFileContents requestedLocation = do
-  exists <- doesFileExist requestedLocation
-  if exists then
-    do
-      file <- B.readFile requestedLocation
-      return $ fullResponse file $ takeExtension requestedLocation
-    else
-      return $ C.pack header404
 
 contentsOr500 :: Either SomeException B.ByteString -> B.ByteString
 contentsOr500 (Left _) = C.pack header500
