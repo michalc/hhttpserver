@@ -42,24 +42,25 @@ mainLoop sock = do
 handle :: Socket -> IO ()
 handle conn = do
   incoming <- recv conn incomingBufferSize
-  let unsafeLocation = extractLocation incoming
-  if isSafeLocation unsafeLocation then
-    do
-      fileContents <- try $ response unsafeLocation
-      send conn $ contentsOr500 fileContents
-  else
-    send conn $ C.pack header404
+  response <- responseForLocation $ extractPath incoming
+  send conn response
   close conn
   where
-    extractLocation = C.unpack . C.tail . head . tail . C.split ' '
+    extractPath = C.unpack . C.tail . head . tail . C.split ' '
+
+responseForLocation :: String -> IO (B.ByteString)
+responseForLocation location = do
+  if isSafeLocation location then
+    do
+      contents <- try $ getFileContents location
+      return $ contentsOr500 contents
+  else
+    return $ C.pack header404
+  where
     isSafeLocation location = not $ ".." `isInfixOf` location
 
-contentsOr500 :: Either SomeException B.ByteString -> B.ByteString
-contentsOr500 (Left _) = C.pack header500
-contentsOr500 (Right contents) = contents
-
-response :: String -> IO (B.ByteString)
-response requestedLocation = do
+getFileContents :: String -> IO (B.ByteString)
+getFileContents requestedLocation = do
   exists <- doesFileExist requestedLocation
   if exists then
     do
@@ -67,6 +68,10 @@ response requestedLocation = do
       return $ fullResponse file $ takeExtension requestedLocation
     else
       return $ C.pack header404
+
+contentsOr500 :: Either SomeException B.ByteString -> B.ByteString
+contentsOr500 (Left _) = C.pack header500
+contentsOr500 (Right contents) = contents
 
 fullResponse :: B.ByteString -> String -> B.ByteString
 fullResponse contents extension = C.pack headerWithMime `B.append` contents
