@@ -38,10 +38,10 @@ mainLoop :: Socket -> IO ()
 mainLoop sock = accept sock >>= forkIO . handle . fst >> mainLoop sock
 
 handle :: Socket -> IO ()
-handle conn = do
-  incoming <- recv conn incomingBufferSize
-  response <- responseForLocation $ extractPath incoming
-  send conn response
+handle conn =
+  recv conn incomingBufferSize >>=
+  responseForLocation . extractPath >>=
+  send conn >>
   close conn
   where
     extractPath = C.unpack . C.tail . head . tail . C.split ' '
