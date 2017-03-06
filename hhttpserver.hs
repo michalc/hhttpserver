@@ -44,25 +44,22 @@ handle conn =
 responseForLocation :: String -> IO (B.ByteString)
 responseForLocation location = do
   accessFile <- andM [return (isSafeLocation location), doesFileExist location]
-  if accessFile then do
-    contents <- try $ B.readFile location
-    return $ contentsOr500 contents
+  if accessFile then
+    (try (B.readFile location) :: IO (Either SomeException B.ByteString)) >>=
+    either (\_ -> return $ C.pack header500) (\contents -> return $ fullResponse location contents)
   else
     return $ C.pack header404
 
 -- Non IO functions
+
 
 -- Overengineered for 2 cases? Can be simpler?
 -- http://stackoverflow.com/a/27097421/1319998
 andM = foldr (&&&) (return True)
   where ma &&& mb = ma >>= \p -> if p then mb else return p
 
-contentsOr500 :: Either SomeException B.ByteString -> B.ByteString
-contentsOr500 (Left _) = C.pack header500
-contentsOr500 (Right contents) = contents
-
-fullResponse :: B.ByteString -> String -> B.ByteString
-fullResponse contents extension = C.pack headerWithMime `B.append` contents
+fullResponse :: String -> B.ByteString -> B.ByteString
+fullResponse extension = B.append $ C.pack headerWithMime
   where
     headerWithMime = printf headerOkText $ mimeForExtension extension
 
@@ -73,4 +70,4 @@ mimeForExtension :: String -> String
 mimeForExtension = flip (Map.findWithDefault defaultMime) mimeTypes
 
 isSafeLocation :: String -> Bool
-isSafeLocation = not . isInfixOf ".." 
+isSafeLocation = not . isInfixOf ".."
