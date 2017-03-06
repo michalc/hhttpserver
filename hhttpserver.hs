@@ -10,16 +10,12 @@ import qualified Data.Map.Strict as Map
 import System.FilePath.Posix
 import System.Directory (doesFileExist)
 import Text.Printf
+import Data.List.Split
 
 port = 8080
 incomingBufferSize = 16384
 mimeTypes = Map.fromList [
-    (".htm", "text/html"),
     (".html", "text/html"),
-    (".js", "application/javascript"),
-    (".css", "text/css"),
-    (".png", "image/png"),
-    (".jpg", "image/jpeg"),
     (".jpeg", "image/jpeg")
   ]
 defaultMime = "application/octet-stream"
@@ -27,6 +23,7 @@ headerOkText = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
 header404 = "HTTP/1.1 404\r\n\r\n"
 header500 = "HTTP/1.1 500\r\n\r\n"
 
+main :: IO ()
 main =
   socket AF_INET Stream 0 >>= \sock ->
   setSocketOption sock ReuseAddr 1 >> 
@@ -40,16 +37,9 @@ mainLoop sock = accept sock >>= forkIO . handle . fst >> mainLoop sock
 handle :: Socket -> IO ()
 handle conn =
   recv conn incomingBufferSize >>=
-  responseForLocation . extractPath >>=
+  responseForLocation . extractPath . C.unpack >>=
   send conn >>
   close conn
-  where
-    extractPath = C.unpack . C.tail . head . tail . C.split ' '
-
--- Overengineered for 2 cases? Can be simpler?
--- http://stackoverflow.com/a/27097421/1319998
-andM = foldr (&&&) (return True)
-  where ma &&& mb = ma >>= \p -> if p then mb else return p
 
 responseForLocation :: String -> IO (B.ByteString)
 responseForLocation location = do
@@ -62,6 +52,13 @@ responseForLocation location = do
   where
     isSafeLocation location = not $ ".." `isInfixOf` location
 
+-- Non IO functions
+
+-- Overengineered for 2 cases? Can be simpler?
+-- http://stackoverflow.com/a/27097421/1319998
+andM = foldr (&&&) (return True)
+  where ma &&& mb = ma >>= \p -> if p then mb else return p
+
 contentsOr500 :: Either SomeException B.ByteString -> B.ByteString
 contentsOr500 (Left _) = C.pack header500
 contentsOr500 (Right contents) = contents
@@ -70,4 +67,9 @@ fullResponse :: B.ByteString -> String -> B.ByteString
 fullResponse contents extension = C.pack headerWithMime `B.append` contents
   where
     headerWithMime = printf headerOkText $ mimeForExtension extension
-    mimeForExtension = flip (Map.findWithDefault defaultMime) mimeTypes
+
+extractPath :: String -> String
+extractPath = tail . head . tail . splitOn " "
+
+mimeForExtension :: String -> String
+mimeForExtension = flip (Map.findWithDefault defaultMime) mimeTypes
