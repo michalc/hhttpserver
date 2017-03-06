@@ -49,8 +49,6 @@ responseForLocation location = do
     return $ contentsOr500 contents
   else
     return $ C.pack header404
-  where
-    isSafeLocation location = not $ ".." `isInfixOf` location
 
 -- Non IO functions
 
@@ -73,3 +71,6 @@ extractPath = tail . head . tail . splitOn " "
 
 mimeForExtension :: String -> String
 mimeForExtension = flip (Map.findWithDefault defaultMime) mimeTypes
+
+isSafeLocation :: String -> Bool
+isSafeLocation = not . isInfixOf ".." 
