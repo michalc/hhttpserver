@@ -45,7 +45,8 @@ responseForLocation :: String -> IO (B.ByteString)
 responseForLocation location =
   (isSafeLocation location) &&& (doesFileExist location) >>= \accessFile ->
   if accessFile then
-    try (B.readFile location) >>= return . contentsOr500 
+    try (B.readFile location) >>=
+    return . contentsOr500 (mimeForLocation location)
   else
     return $ C.pack header404
 
@@ -55,20 +56,18 @@ a &&& bIOAction = if a then bIOAction else return False
 
 -- Non IO functions
 
-contentsOr500 :: Either SomeException B.ByteString -> B.ByteString
-contentsOr500 (Left _) = C.pack header500
-contentsOr500 (Right contents) = contents
+contentsOr500 :: String -> Either SomeException B.ByteString -> B.ByteString
+contentsOr500 mime (Left _) = C.pack header500
+contentsOr500 mime (Right contents) = fullResponse mime contents
 
 fullResponse :: String -> B.ByteString -> B.ByteString
-fullResponse extension = B.append $ C.pack headerWithMime
-  where
-    headerWithMime = printf headerOkText $ mimeForExtension extension
+fullResponse = B.append . C.pack . printf headerOkText
 
 extractPath :: String -> String
 extractPath = tail . head . tail . splitOn " "
 
-mimeForExtension :: String -> String
-mimeForExtension = flip (Map.findWithDefault defaultMime) mimeTypes
+mimeForLocation :: String -> String
+mimeForLocation = flip (Map.findWithDefault defaultMime) mimeTypes . takeExtension
 
 isSafeLocation :: String -> Bool
 isSafeLocation = not . isInfixOf ".."
