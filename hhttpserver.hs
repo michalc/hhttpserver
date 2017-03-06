@@ -43,22 +43,21 @@ handle conn =
 
 responseForLocation :: String -> IO (B.ByteString)
 responseForLocation location =
-  andM [return (isSafeLocation location), doesFileExist location] >>= \accessFile ->
+  (isSafeLocation location) &&& (doesFileExist location) >>= \accessFile ->
   if accessFile then
     try (B.readFile location) >>= return . contentsOr500 
   else
     return $ C.pack header404
+
+-- Short circuit && that accepts pure + IO action
+(&&&) :: Bool -> IO (Bool) -> IO (Bool)
+a &&& bIOAction = if a then bIOAction else return False
 
 -- Non IO functions
 
 contentsOr500 :: Either SomeException B.ByteString -> B.ByteString
 contentsOr500 (Left _) = C.pack header500
 contentsOr500 (Right contents) = contents
-
--- Overengineered for 2 cases? Can be simpler?
--- http://stackoverflow.com/a/27097421/1319998
-andM = foldr (&&&) (return True)
-  where ma &&& mb = ma >>= \p -> if p then mb else return p
 
 fullResponse :: String -> B.ByteString -> B.ByteString
 fullResponse extension = B.append $ C.pack headerWithMime
