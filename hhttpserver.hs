@@ -42,16 +42,18 @@ handle conn =
   close conn
 
 responseForLocation :: String -> IO (B.ByteString)
-responseForLocation location = do
-  accessFile <- andM [return (isSafeLocation location), doesFileExist location]
+responseForLocation location =
+  andM [return (isSafeLocation location), doesFileExist location] >>= \accessFile ->
   if accessFile then
-    (try (B.readFile location) :: IO (Either SomeException B.ByteString)) >>=
-    either (\_ -> return $ C.pack header500) (\contents -> return $ fullResponse location contents)
+    try (B.readFile location) >>= return . contentsOr500 
   else
     return $ C.pack header404
 
 -- Non IO functions
 
+contentsOr500 :: Either SomeException B.ByteString -> B.ByteString
+contentsOr500 (Left _) = C.pack header500
+contentsOr500 (Right contents) = contents
 
 -- Overengineered for 2 cases? Can be simpler?
 -- http://stackoverflow.com/a/27097421/1319998
