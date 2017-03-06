@@ -35,10 +35,7 @@ main = do
   mainLoop sock
 
 mainLoop :: Socket -> IO ()
-mainLoop sock = do
-  (conn, _) <- accept sock
-  forkIO $ handle conn
-  mainLoop sock
+mainLoop sock = accept sock >>= forkIO . handle . fst >> mainLoop sock
 
 handle :: Socket -> IO ()
 handle conn = do
