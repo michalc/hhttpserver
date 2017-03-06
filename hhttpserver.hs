@@ -49,11 +49,14 @@ handle conn = do
   where
     extractPath = C.unpack . C.tail . head . tail . C.split ' '
 
+-- Overengineered for 2 cases? Can be simpler?
+-- http://stackoverflow.com/a/27097421/1319998
+andM = foldr (&&&) (return True)
+  where ma &&& mb = ma >>= \p -> if p then mb else return p
+
 responseForLocation :: String -> IO (B.ByteString)
 responseForLocation location = do
-  -- Suspect this is not lazy, and always check location
-  results <- sequence [return (isSafeLocation location), doesFileExist location]
-  let accessFile = all (== True) results
+  accessFile <- andM [return (isSafeLocation location), doesFileExist location]
   if accessFile then do
     contents <- try $ B.readFile location
     return $ contentsOr500 contents
