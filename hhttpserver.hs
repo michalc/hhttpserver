@@ -27,11 +27,11 @@ headerOkText = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
 header404 = "HTTP/1.1 404\r\n\r\n"
 header500 = "HTTP/1.1 500\r\n\r\n"
 
-main = do
-  sock <- socket AF_INET Stream 0
-  setSocketOption sock ReuseAddr 1
-  bind sock $ SockAddrInet port iNADDR_ANY
-  listen sock sOMAXCONN
+main =
+  socket AF_INET Stream 0 >>= \sock ->
+  setSocketOption sock ReuseAddr 1 >> 
+  bind sock (SockAddrInet port iNADDR_ANY) >>
+  listen sock sOMAXCONN >>
   mainLoop sock
 
 mainLoop :: Socket -> IO ()
