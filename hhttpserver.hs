@@ -58,7 +58,7 @@ True  &&& bIOAction = bIOAction
 -- Non IO functions
 
 fullHttpResponseOr500 :: String -> Either SomeException B.ByteString -> B.ByteString
-fullHttpResponseOr500 mime (Left _) = C.pack header500
+fullHttpResponseOr500 _    (Left _) = C.pack header500
 fullHttpResponseOr500 mime (Right contents) = fullHttpResponse mime contents
 
 fullHttpResponse :: String -> B.ByteString -> B.ByteString
