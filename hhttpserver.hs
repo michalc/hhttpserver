@@ -43,25 +43,26 @@ handle conn =
 
 responseForLocation :: String -> IO (B.ByteString)
 responseForLocation location =
-  (isSafeLocation location) &&& (doesFileExist location) >>= \accessFile ->
-  if accessFile then
-    try (B.readFile location) >>=
-    return . contentsOr500 (mimeForLocation location)
-  else
-    return $ C.pack header404
+  (isSafeLocation location) &&& (doesFileExist location) >>= accessFile location
+
+accessFile :: String -> Bool -> IO (B.ByteString)
+accessFile _        False = return $ C.pack header404
+accessFile location True  = try (B.readFile location) >>= 
+                            return . fullHttpResponseOr500 (mimeForLocation location)
 
 -- Short circuit && that accepts pure + IO action
 (&&&) :: Bool -> IO (Bool) -> IO (Bool)
-a &&& bIOAction = if a then bIOAction else return False
+False &&& _         = return False
+True  &&& bIOAction = bIOAction
 
 -- Non IO functions
 
-contentsOr500 :: String -> Either SomeException B.ByteString -> B.ByteString
-contentsOr500 mime (Left _) = C.pack header500
-contentsOr500 mime (Right contents) = fullResponse mime contents
+fullHttpResponseOr500 :: String -> Either SomeException B.ByteString -> B.ByteString
+fullHttpResponseOr500 mime (Left _) = C.pack header500
+fullHttpResponseOr500 mime (Right contents) = fullHttpResponse mime contents
 
-fullResponse :: String -> B.ByteString -> B.ByteString
-fullResponse = B.append . C.pack . printf headerOkText
+fullHttpResponse :: String -> B.ByteString -> B.ByteString
+fullHttpResponse = B.append . C.pack . printf headerOkText
 
 extractPath :: String -> String
 extractPath = tail . head . tail . splitOn " "
