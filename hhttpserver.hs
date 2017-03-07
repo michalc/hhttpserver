@@ -57,7 +57,7 @@ fullHttpResponseOr500 _    (Left  _)        = pack header500
 fullHttpResponseOr500 mime (Right contents) = fullHttpResponse mime contents
 
 fullHttpResponse :: String -> ByteString -> ByteString
-fullHttpResponse = append . pack . printf headerOkText
+fullHttpResponse = append . pack . printf headerOk
 
 extractPath :: String -> String
 extractPath = tail . head . tail . splitOn " "
@@ -78,6 +78,6 @@ mimeTypes = fromList [
     (".jpeg", "image/jpeg")
   ]
 defaultMime = "application/octet-stream"
-headerOkText = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
+headerOk = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
 header404 = "HTTP/1.1 404\r\n\r\n"
 header500 = "HTTP/1.1 500\r\n\r\n"
