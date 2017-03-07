@@ -42,13 +42,12 @@ handle conn =
   close conn
 
 response :: String -> IO (B.ByteString)
-response path =
-  (isSafePath path) &&& (doesFileExist path) >>= responseForFile path
+response path = (isSafePath path) &&& (doesFileExist path) >>= responseForPath path
 
-responseForFile :: String -> Bool -> IO (B.ByteString)
-responseForFile _    False = return $ C.pack header404
-responseForFile path True  = try (B.readFile path) >>= 
-                                 return . fullHttpResponseOr500 (mimeForPath path)
+responseForPath :: String -> Bool -> IO (B.ByteString)
+responseForPath _    False = return $ C.pack header404
+responseForPath path True  = try (B.readFile path) >>= 
+                             return . fullHttpResponseOr500 (mimeForPath path)
 
 -- Short circuit && that accepts pure + IO action
 (&&&) :: Bool -> IO (Bool) -> IO (Bool)
@@ -58,7 +57,7 @@ True  &&& bIOAction = bIOAction
 -- Non IO functions
 
 fullHttpResponseOr500 :: String -> Either SomeException B.ByteString -> B.ByteString
-fullHttpResponseOr500 _    (Left _) = C.pack header500
+fullHttpResponseOr500 _    (Left  _)        = C.pack header500
 fullHttpResponseOr500 mime (Right contents) = fullHttpResponse mime contents
 
 fullHttpResponse :: String -> B.ByteString -> B.ByteString
