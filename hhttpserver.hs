@@ -24,22 +24,20 @@ header404 = "HTTP/1.1 404\r\n\r\n"
 header500 = "HTTP/1.1 500\r\n\r\n"
 
 main :: IO ()
-main =
-  socket AF_INET Stream 0 >>= \sock ->
-  setSocketOption sock ReuseAddr 1 >> 
-  bind sock (SockAddrInet port iNADDR_ANY) >>
-  listen sock sOMAXCONN >>
-  mainLoop sock
+main = socket AF_INET Stream 0 >>= \sock ->
+       setSocketOption sock ReuseAddr 1 >> 
+       bind sock (SockAddrInet port iNADDR_ANY) >>
+       listen sock sOMAXCONN >>
+       mainLoop sock
 
 mainLoop :: Socket -> IO ()
 mainLoop sock = accept sock >>= forkIO . handle . fst >> mainLoop sock
 
 handle :: Socket -> IO ()
-handle conn =
-  recv conn incomingBufferSize >>=
-  response . extractPath . C.unpack >>=
-  send conn >>
-  close conn
+handle conn = recv conn incomingBufferSize >>=
+              response . extractPath . C.unpack >>=
+              send conn >>
+              close conn
 
 response :: String -> IO (B.ByteString)
 response path = (isSafePath path) &&& (doesFileExist path) >>= responseForPath path
@@ -67,7 +65,7 @@ extractPath :: String -> String
 extractPath = tail . head . tail . splitOn " "
 
 mimeForPath :: String -> String
-mimeForPath = flip (Map.findWithDefault defaultMime) mimeTypes . takeExtension
+mimeForPath path = Map.findWithDefault defaultMime (takeExtension path) mimeTypes
 
 isSafePath :: String -> Bool
 isSafePath = not . isInfixOf ".."
