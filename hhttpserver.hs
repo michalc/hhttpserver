@@ -1,20 +1,26 @@
-import Network.Socket hiding (send, sendTo, recv, recvFrom)
-import Network.Socket.ByteString
-import qualified Data.ByteString.Char8 as C
-import qualified Data.ByteString as B
-import Data.List
-import Control.Concurrent
+-- Being crazy explit on where things come from
+import Prelude hiding (readFile)
+
+import Control.Concurrent (forkIO)
 import Control.Exception (SomeException, try)
-import Control.Monad
-import qualified Data.Map.Strict as Map
-import System.FilePath.Posix
+import Data.ByteString (ByteString, append, readFile)
+import Data.ByteString.Char8 (pack, unpack)
+import Data.List (isInfixOf)
+import Data.List.Split (splitOn)
+import Data.Map.Strict (findWithDefault, fromList)
+import Network.Socket (
+  Family(AF_INET), SockAddr(SockAddrInet), Socket, SocketOption(ReuseAddr), SocketType(Stream), 
+  iNADDR_ANY, sOMAXCONN,
+  accept, bind, close, listen, setSocketOption, socket
+  )
+import Network.Socket.ByteString (recv, send)
 import System.Directory (doesFileExist)
-import Text.Printf
-import Data.List.Split
+import System.FilePath.Posix (takeExtension)
+import Text.Printf (printf)
 
 port = 8080
 incomingBufferSize = 16384
-mimeTypes = Map.fromList [
+mimeTypes = fromList [
     (".html", "text/html"),
     (".jpeg", "image/jpeg")
   ]
@@ -35,16 +41,16 @@ mainLoop sock = accept sock >>= forkIO . handle . fst >> mainLoop sock
 
 handle :: Socket -> IO ()
 handle conn = recv conn incomingBufferSize >>=
-              response . extractPath . C.unpack >>=
+              response . extractPath . unpack >>=
               send conn >>
               close conn
 
-response :: String -> IO (B.ByteString)
+response :: String -> IO (ByteString)
 response path = (isSafePath path) &&& (doesFileExist path) >>= responseForPath path
 
-responseForPath :: String -> Bool -> IO (B.ByteString)
-responseForPath _    False = return $ C.pack header404
-responseForPath path True  = try (B.readFile path) >>= 
+responseForPath :: String -> Bool -> IO (ByteString)
+responseForPath _    False = return $ pack header404
+responseForPath path True  = try (readFile path) >>= 
                              return . fullHttpResponseOr500 (mimeForPath path)
 
 -- Short circuit && that accepts pure + IO action
@@ -54,18 +60,18 @@ True  &&& bIOAction = bIOAction
 
 -- Non IO functions
 
-fullHttpResponseOr500 :: String -> Either SomeException B.ByteString -> B.ByteString
-fullHttpResponseOr500 _    (Left  _)        = C.pack header500
+fullHttpResponseOr500 :: String -> Either SomeException ByteString -> ByteString
+fullHttpResponseOr500 _    (Left  _)        = pack header500
 fullHttpResponseOr500 mime (Right contents) = fullHttpResponse mime contents
 
-fullHttpResponse :: String -> B.ByteString -> B.ByteString
-fullHttpResponse = B.append . C.pack . printf headerOkText
+fullHttpResponse :: String -> ByteString -> ByteString
+fullHttpResponse = append . pack . printf headerOkText
 
 extractPath :: String -> String
 extractPath = tail . head . tail . splitOn " "
 
 mimeForPath :: String -> String
-mimeForPath path = Map.findWithDefault defaultMime (takeExtension path) mimeTypes
+mimeForPath path = findWithDefault defaultMime (takeExtension path) mimeTypes
 
 isSafePath :: String -> Bool
 isSafePath = not . isInfixOf ".."
