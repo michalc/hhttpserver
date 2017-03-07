@@ -1,4 +1,3 @@
--- Being crazy explit on where things come from
 import Prelude hiding (readFile)
 
 import Control.Concurrent (forkIO)
@@ -18,16 +17,8 @@ import System.Directory (doesFileExist)
 import System.FilePath.Posix (takeExtension)
 import Text.Printf (printf)
 
-port = 8080
-incomingBufferSize = 16384
-mimeTypes = fromList [
-    (".html", "text/html"),
-    (".jpeg", "image/jpeg")
-  ]
-defaultMime = "application/octet-stream"
-headerOkText = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
-header404 = "HTTP/1.1 404\r\n\r\n"
-header500 = "HTTP/1.1 500\r\n\r\n"
+---------------
+-- IO functions
 
 main :: IO ()
 main = socket AF_INET Stream 0 >>= \sock ->
@@ -58,6 +49,7 @@ responseForPath path True  = try (readFile path) >>=
 False &&& _         = return False
 True  &&& bIOAction = bIOAction
 
+-------------------
 -- Non IO functions
 
 fullHttpResponseOr500 :: String -> Either SomeException ByteString -> ByteString
@@ -75,3 +67,17 @@ mimeForPath path = findWithDefault defaultMime (takeExtension path) mimeTypes
 
 isSafePath :: String -> Bool
 isSafePath = not . isInfixOf ".."
+
+------------
+-- Constants
+
+port = 8080
+incomingBufferSize = 16384
+mimeTypes = fromList [
+    (".html", "text/html"),
+    (".jpeg", "image/jpeg")
+  ]
+defaultMime = "application/octet-stream"
+headerOkText = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
+header404 = "HTTP/1.1 404\r\n\r\n"
+header500 = "HTTP/1.1 500\r\n\r\n"
