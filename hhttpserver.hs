@@ -36,16 +36,16 @@ handle conn = recv conn incomingBufferSize >>=
               send conn >>
               close conn
 
-response :: String -> IO (ByteString)
+response :: String -> IO ByteString
 response path = (isSafePath path) &&& (doesFileExist path) >>= responseForPath path
 
-responseForPath :: String -> Bool -> IO (ByteString)
+responseForPath :: String -> Bool -> IO ByteString
 responseForPath _    False = return $ pack header404
 responseForPath path True  = try (readFile path) >>= 
                              return . fullHttpResponseOr500 (mimeForPath path)
 
 -- Short circuit && that accepts pure + IO action
-(&&&) :: Bool -> IO (Bool) -> IO (Bool)
+(&&&) :: Bool -> IO Bool -> IO Bool
 False &&& _         = return False
 True  &&& bIOAction = bIOAction
 
