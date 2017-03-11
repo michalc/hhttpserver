@@ -33,7 +33,7 @@ mainLoop sock = accept sock >>= forkIO . handle . fst >> mainLoop sock
 
 log :: (Show a) => String -> a -> IO a
 log label val = getCurrentTime >>= \time ->
-                putStrLn ("[" ++ (show time) ++ "] [" ++ label ++ "] " ++ (take maxLogLength $ show val)) >>
+                putStrLn ("[" ++ show time ++ "] [" ++ label ++ "] " ++ (take maxLogLength $ show val)) >>
                 return val 
 
 handle :: Socket -> IO ()
