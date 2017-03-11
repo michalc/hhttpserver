@@ -38,10 +38,9 @@ log label val = getCurrentTime >>= \time ->
                 return val 
 
 handle :: Socket -> IO ()
-handle conn = recv conn incomingBufferSize >>=
-              log "request" >>=
-              log "path" . extractPath . unpack >>=
-              response >>= log "response" >>=
+handle conn = recv conn incomingBufferSize  >>= log "request"  >>=
+              return . extractPath . unpack >>= log "path"     >>=
+              response                      >>= log "response" >>=
               send conn >>
               close conn
 
