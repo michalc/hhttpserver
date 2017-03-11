@@ -34,8 +34,8 @@ mainLoop sock = forever $ accept sock >>= forkIO . handle . fst
 
 log :: (Show a) => String -> a -> IO a
 log label val = getCurrentTime >>= \time ->
-                putStrLn ("[" ++ show time ++ "] [" ++ label ++ "] " ++ (take maxLogLength $ show val)) >>
-                return val 
+                putStrLn (printf logTemplate (show time) label (take maxLogLength $ show val)) >>
+                return val
 
 handle :: Socket -> IO ()
 handle conn = recv conn incomingBufferSize  >>= log "request"  >>=
@@ -89,4 +89,5 @@ defaultMime = "application/octet-stream"
 headerOk = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
 header404 = "HTTP/1.1 404\r\n\r\n"
 header500 = "HTTP/1.1 500\r\n\r\n"
+logTemplate = "[%s] [%s] %s"
 maxLogLength = 1024
