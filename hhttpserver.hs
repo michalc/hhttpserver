@@ -12,7 +12,7 @@ import Data.Time.Clock (getCurrentTime)
 import Network.Socket (
   Family(AF_INET), SockAddr(SockAddrInet), Socket, SocketOption(ReuseAddr), SocketType(Stream), 
   iNADDR_ANY, sOMAXCONN,
-  accept, bind, close, listen, setSocketOption, socket
+  accept, bind, close, getPeerName, listen, setSocketOption, socket
   )
 import Network.Socket.ByteString (recv, send)
 import System.Directory (doesFileExist)
@@ -30,19 +30,20 @@ main = socket AF_INET Stream 0 >>= \sock ->
        mainLoop sock
 
 mainLoop :: Socket -> IO ()
-mainLoop sock = forever $ accept sock >>= forkIO . handle . fst 
+mainLoop sock = forever $ accept sock >>= forkIO . handle
 
 log :: (Show a) => String -> a -> IO a
 log label val = getCurrentTime >>= \time ->
                 putStrLn (printf logTemplate (show time) label (take maxLogLength $ show val)) >>
                 return val
 
-handle :: Socket -> IO ()
-handle conn = recv conn incomingBufferSize  >>= log "request"  >>=
-              return . extractPath . unpack >>= log "path"     >>=
-              response                      >>= log "response" >>=
-              send conn >>
-              close conn
+handle :: (Socket, SockAddr) -> IO ()
+handle (conn, addr) =                                   log "address" addr >>
+                      recv conn incomingBufferSize  >>= log "request"      >>=
+                      return . extractPath . unpack >>= log "path"         >>=
+                      response                      >>= log "response"     >>=
+                      send conn                     >>
+                      close conn
 
 response :: String -> IO ByteString
 response path = (isSafePath path) &&& (doesFileExist path) >>= responseForPath path
