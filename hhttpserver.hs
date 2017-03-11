@@ -1,4 +1,4 @@
-import Prelude hiding (readFile)
+import Prelude hiding (readFile, log)
 
 import Control.Concurrent (forkIO)
 import Control.Exception (SomeException, try)
@@ -7,6 +7,7 @@ import Data.ByteString.Char8 (pack, unpack)
 import Data.List (isInfixOf)
 import Data.List.Split (splitOn)
 import Data.Map.Strict (findWithDefault, fromList)
+import Data.Time.Clock (getCurrentTime)
 import Network.Socket (
   Family(AF_INET), SockAddr(SockAddrInet), Socket, SocketOption(ReuseAddr), SocketType(Stream), 
   iNADDR_ANY, sOMAXCONN,
@@ -30,9 +31,16 @@ main = socket AF_INET Stream 0 >>= \sock ->
 mainLoop :: Socket -> IO ()
 mainLoop sock = accept sock >>= forkIO . handle . fst >> mainLoop sock
 
+log :: (Show a) => String -> a -> IO a
+log label val = getCurrentTime >>= \time ->
+                putStrLn ("[" ++ (show time) ++ "] [" ++ label ++ "] " ++ (take maxLogLength $ show val)) >>
+                return val 
+
 handle :: Socket -> IO ()
 handle conn = recv conn incomingBufferSize >>=
-              response . extractPath . unpack >>=
+              log "request" >>=
+              log "path" . extractPath . unpack >>=
+              response >>= log "response" >>=
               send conn >>
               close conn
 
@@ -81,3 +89,4 @@ defaultMime = "application/octet-stream"
 headerOk = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
 header404 = "HTTP/1.1 404\r\n\r\n"
 header500 = "HTTP/1.1 500\r\n\r\n"
+maxLogLength = 1024
