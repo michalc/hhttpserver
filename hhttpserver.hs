@@ -32,16 +32,15 @@ main = socket AF_INET Stream 0 >>= \sock ->
 mainLoop :: Socket -> IO ()
 mainLoop sock = forever $ accept sock >>= forkIO . handle
 
-log :: (Show a) => String -> a -> IO a
-log label val = getCurrentTime >>= \time ->
-                putStrLn (printf logTemplate (show time) label (take maxLogLength $ show val)) >>
-                return val
+log :: (Show a) => SockAddr -> String -> a -> IO a
+log addr label val = getCurrentTime >>= \time ->
+                     putStrLn (printf logTemplate (show time) (show addr) label (take maxLogLength $ show val)) >>
+                     return val
 
 handle :: (Socket, SockAddr) -> IO ()
-handle (conn, addr) =                                   log "address" addr >>
-                      recv conn incomingBufferSize  >>= log "request"      >>=
-                      return . extractPath . unpack >>= log "path"         >>=
-                      response                      >>= log "response"     >>=
+handle (conn, addr) = recv conn incomingBufferSize  >>= log addr "request"  >>=
+                      return . extractPath . unpack >>= log addr "path"     >>=
+                      response                      >>= log addr "response" >>=
                       send conn                     >>
                       close conn
 
@@ -90,5 +89,5 @@ defaultMime = "application/octet-stream"
 headerOk = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
 header404 = "HTTP/1.1 404\r\n\r\n"
 header500 = "HTTP/1.1 500\r\n\r\n"
-logTemplate = "[%s] [%s] %s"
+logTemplate = "[%s] [%s] [%s] %s"
 maxLogLength = 1024
