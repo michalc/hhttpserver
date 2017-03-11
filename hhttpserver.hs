@@ -2,6 +2,7 @@ import Prelude hiding (readFile, log)
 
 import Control.Concurrent (forkIO)
 import Control.Exception (SomeException, try)
+import Control.Monad (forever)
 import Data.ByteString (ByteString, append, readFile)
 import Data.ByteString.Char8 (pack, unpack)
 import Data.List (isInfixOf)
@@ -29,7 +30,7 @@ main = socket AF_INET Stream 0 >>= \sock ->
        mainLoop sock
 
 mainLoop :: Socket -> IO ()
-mainLoop sock = accept sock >>= forkIO . handle . fst >> mainLoop sock
+mainLoop sock = forever $ accept sock >>= forkIO . handle . fst 
 
 log :: (Show a) => String -> a -> IO a
 log label val = getCurrentTime >>= \time ->
