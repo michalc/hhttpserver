@@ -74,7 +74,7 @@ mimeForPath :: String -> String
 mimeForPath path = findWithDefault defaultMime (takeExtension path) mimeTypes
 
 isSafePath :: String -> Bool
-isSafePath path = not (isInfixOf ".." path) && head path /= '/'
+isSafePath path = not (null path) && not (isInfixOf ".." path) && head path /= '/'
 
 ------------
 -- Constants
