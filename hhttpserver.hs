@@ -48,7 +48,7 @@ sendResponse (conn, addr) = recv conn incomingBufferSize  >>=
                             send conn . packHttpMessage   >> return ()
 
 send500 :: (Socket, SockAddr) -> SomeException -> IO ()
-send500 (conn, addr) _ = send conn (packHttpMessage http500) >> return ()
+send500 (conn, addr) e = log addr "error" e >> send conn (packHttpMessage http500) >> return ()
 
 response :: String -> IO HttpMessage
 response path = (isSafePath path) &&& (doesFileExist path) >>= responseForPath path
