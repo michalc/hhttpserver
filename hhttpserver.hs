@@ -50,7 +50,7 @@ response path = (isSafePath path) &&& (doesFileExist path) >>= responseForPath p
 responseForPath :: String -> Bool -> IO HttpMessage
 responseForPath _    False = return http404
 responseForPath path True  = try (readFile path) >>= 
-                             return . fullHttpResponseOr500 (mimeForPath path)
+                             return . reponseOr500 (mimeForPath path)
 
 -- Short circuit && that accepts pure + IO action
 (&&&) :: Bool -> IO Bool -> IO Bool
@@ -67,9 +67,9 @@ unpackHttpMessage byteString = HttpMessage {header = unpack header, contents = c
 packHttpMessage :: HttpMessage -> ByteString
 packHttpMessage HttpMessage {header = header, contents = contents} = pack header `append` httpHeaderEnd `append` contents 
 
-fullHttpResponseOr500 :: String -> Either SomeException ByteString -> HttpMessage
-fullHttpResponseOr500 _    (Left  _)        = http500
-fullHttpResponseOr500 mime (Right contents) = HttpMessage {header = printf headerOk mime, contents = contents}
+reponseOr500 :: String -> Either SomeException ByteString -> HttpMessage
+reponseOr500 _    (Left  _)        = http500
+reponseOr500 mime (Right contents) = HttpMessage {header = printf headerOk mime, contents = contents}
 
 extractPath :: HttpMessage -> String
 extractPath = tail . head . tail . splitOn " " . header
