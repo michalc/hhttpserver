@@ -3,7 +3,7 @@ import Prelude hiding (readFile, log)
 import Control.Concurrent (forkIO)
 import Control.Exception (SomeException, try)
 import Control.Monad (forever)
-import Data.ByteString (ByteString, append, readFile)
+import Data.ByteString (ByteString, append, breakSubstring, empty, readFile)
 import Data.ByteString.Char8 (pack, unpack)
 import Data.List (isInfixOf)
 import Data.List.Split (splitOn)
@@ -38,17 +38,17 @@ log addr label val = getCurrentTime >>= \time ->
                      return val
 
 handle :: (Socket, SockAddr) -> IO ()
-handle (conn, addr) = recv conn incomingBufferSize  >>= log addr "request"  >>=
-                      return . extractPath . unpack >>= log addr "path"     >>=
-                      response                      >>= log addr "response" >>=
-                      send conn                     >>
+handle (conn, addr) = recv conn incomingBufferSize  >>=
+                      return . unpackHttpMessage    >>= log addr "request"  >>=
+                      response . extractPath        >>= log addr "response" >>=
+                      send conn . packHttpMessage   >>
                       close conn
 
-response :: String -> IO ByteString
+response :: String -> IO HttpMessage
 response path = (isSafePath path) &&& (doesFileExist path) >>= responseForPath path
 
-responseForPath :: String -> Bool -> IO ByteString
-responseForPath _    False = return $ pack header404
+responseForPath :: String -> Bool -> IO HttpMessage
+responseForPath _    False = return http404
 responseForPath path True  = try (readFile path) >>= 
                              return . fullHttpResponseOr500 (mimeForPath path)
 
@@ -60,15 +60,20 @@ True  &&& bIOAction = bIOAction
 -------------------
 -- Non IO functions
 
-fullHttpResponseOr500 :: String -> Either SomeException ByteString -> ByteString
-fullHttpResponseOr500 _    (Left  _)        = pack header500
-fullHttpResponseOr500 mime (Right contents) = fullHttpResponse mime contents
+unpackHttpMessage :: ByteString -> HttpMessage
+unpackHttpMessage byteString = HttpMessage {header = unpack header, contents = contents}
+  where
+  (header, contents) = breakSubstring httpHeaderEnd byteString
 
-fullHttpResponse :: String -> ByteString -> ByteString
-fullHttpResponse = append . pack . printf headerOk
+packHttpMessage :: HttpMessage -> ByteString
+packHttpMessage HttpMessage {header = header, contents = contents} = pack header `append` hTTP_HEADER_END `append` contents 
 
-extractPath :: String -> String
-extractPath = tail . head . tail . splitOn " "
+fullHttpResponseOr500 :: String -> Either SomeException ByteString -> HttpMessage
+fullHttpResponseOr500 _    (Left  _)        = http500
+fullHttpResponseOr500 mime (Right contents) = HttpMessage {header = printf headerOk mime, contents = contents}
+
+extractPath :: HttpMessage -> String
+extractPath = tail . head . tail . splitOn " " . header
 
 mimeForPath :: String -> String
 mimeForPath path = findWithDefault defaultMime (takeExtension path) mimeTypes
@@ -81,13 +86,25 @@ isSafePath path = not (null path) && not (isInfixOf ".." path) && head path /= '
 
 port = 8080
 incomingBufferSize = 16384
+
 mimeTypes = fromList [
     (".html", "text/html"),
     (".jpeg", "image/jpeg")
   ]
 defaultMime = "application/octet-stream"
-headerOk = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n"
-header404 = "HTTP/1.1 404\r\n\r\n"
-header500 = "HTTP/1.1 500\r\n\r\n"
+
+headerOk = "HTTP/1.1 200 OK\r\nContent-Type: %s"
+http404 = HttpMessage {header="HTTP/1.1 404 Not Found", contents=empty}
+http500 = HttpMessage {header="HTTP/1.1 500 Internal Server Error", contents=empty}
+httpHeaderEnd = pack "\r\n\r\n"
+
 logTemplate = "[%s] [%s] [%s] %s"
 maxLogLength = 1024
+
+--------
+-- Types
+
+data HttpMessage = HttpMessage {
+  header :: String,
+  contents :: ByteString
+} deriving (Show)
