@@ -1,7 +1,7 @@
 import Prelude hiding (readFile, log)
 
 import Control.Concurrent (forkIO)
-import Control.Exception (SomeException, try)
+import Control.Exception (SomeException, catch, try)
 import Control.Monad (forever)
 import Data.ByteString (ByteString, append, breakSubstring, empty, readFile)
 import Data.ByteString.Char8 (pack, unpack)
@@ -38,19 +38,25 @@ log addr label val = getCurrentTime >>= \time ->
                      return val
 
 handle :: (Socket, SockAddr) -> IO ()
-handle (conn, addr) = recv conn incomingBufferSize  >>=
-                      return . unpackHttpMessage    >>= log addr "request"  >>=
-                      response . extractPath        >>= log addr "response" >>=
-                      send conn . packHttpMessage   >>
+handle (conn, addr) = catch (sendResponse (conn, addr)) (send500 (conn, addr)) >>
                       close conn
+
+sendResponse :: (Socket, SockAddr) -> IO ()
+sendResponse (conn, addr) = recv conn incomingBufferSize  >>=
+                            return . unpackHttpMessage    >>= log addr "request"  >>=
+                            response . extractPath        >>= log addr "response" >>=
+                            send conn . packHttpMessage   >> return ()
+
+send500 :: (Socket, SockAddr) -> SomeException -> IO ()
+send500 (conn, addr) _ = send conn (packHttpMessage http500) >> return ()
 
 response :: String -> IO HttpMessage
 response path = (isSafePath path) &&& (doesFileExist path) >>= responseForPath path
 
 responseForPath :: String -> Bool -> IO HttpMessage
 responseForPath _    False = return http404
-responseForPath path True  = try (readFile path) >>= 
-                             return . reponseOr500 (mimeForPath path)
+responseForPath path True  = readFile path >>=
+                             return . wrapInHttpMessage (mimeForPath path)
 
 -- Short circuit && that accepts pure + IO action
 (&&&) :: Bool -> IO Bool -> IO Bool
@@ -67,9 +73,8 @@ unpackHttpMessage byteString = HttpMessage {header = unpack header, contents = c
 packHttpMessage :: HttpMessage -> ByteString
 packHttpMessage HttpMessage {header = header, contents = contents} = pack header `append` httpHeaderEnd `append` contents 
 
-reponseOr500 :: String -> Either SomeException ByteString -> HttpMessage
-reponseOr500 _    (Left  _)        = http500
-reponseOr500 mime (Right contents) = HttpMessage {header = printf headerOk mime, contents = contents}
+wrapInHttpMessage :: String -> ByteString -> HttpMessage
+wrapInHttpMessage mime contents = HttpMessage {header = printf headerOk mime, contents = contents}
 
 extractPath :: HttpMessage -> String
 extractPath = tail . head . tail . splitOn " " . header
