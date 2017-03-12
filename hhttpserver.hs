@@ -62,11 +62,10 @@ True  &&& bIOAction = bIOAction
 
 unpackHttpMessage :: ByteString -> HttpMessage
 unpackHttpMessage byteString = HttpMessage {header = unpack header, contents = contents}
-  where
-  (header, contents) = breakSubstring httpHeaderEnd byteString
+  where (header, contents) = breakSubstring httpHeaderEnd byteString
 
 packHttpMessage :: HttpMessage -> ByteString
-packHttpMessage HttpMessage {header = header, contents = contents} = pack header `append` hTTP_HEADER_END `append` contents 
+packHttpMessage HttpMessage {header = header, contents = contents} = pack header `append` httpHeaderEnd `append` contents 
 
 fullHttpResponseOr500 :: String -> Either SomeException ByteString -> HttpMessage
 fullHttpResponseOr500 _    (Left  _)        = http500
