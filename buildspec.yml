@@ -5,3 +5,6 @@ phases:
     commands:
       - echo "Build started"
       - ./bin/build
+artifacts:
+  files:
+    - hhttpserver
