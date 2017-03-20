@@ -57,18 +57,8 @@ resource "aws_codebuild_project" "integration_test" {
 
   environment {
     compute_type = "BUILD_GENERAL1_SMALL"
-    image        = "2"
-    type         = "LINUX_CONTAINER"
-
-    # environment_variable {
-    #   "name"  = "SOME_KEY1"
-    #   "value" = "SOME_VALUE1"
-    # }
-
-    # environment_variable {
-    #   "name"  = "SOME_KEY2"
-    #   "value" = "SOME_VALUE2"
-    # }
+    image = "aws/codebuild/ubuntu-base:14.04"
+    type = "LINUX_CONTAINER"
   }
 
   source {
