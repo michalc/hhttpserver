@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+ghc hhttpserver.hs
+echo "Starting server"
+./hhttpserver

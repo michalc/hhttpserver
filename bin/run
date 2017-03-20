@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+docker-compose build hhttpserver_build
+docker-compose run --service-ports hhttpserver ./bin/_run

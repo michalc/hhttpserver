@@ -1,0 +1,12 @@
+version: "3"
+services:
+  hhttpserver_build:
+    build: .
+    volumes:
+      - .:/code
+  hhttpserver_run:
+    build: .
+    volumes:
+      - .:/code
+    ports:
+      - 8080:8080

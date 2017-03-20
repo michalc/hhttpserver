@@ -1,6 +1,10 @@
 ################################################################################
 ## integration test
 
+resource "aws_s3_bucket" "artifacts" {
+  bucket = "artifacts.hhttpserver.charemza.name"
+}
+
 resource "aws_iam_role" "integration_test" {
   name = "hhttpserver_integration_test"
   assume_role_policy = "${data.aws_iam_policy_document.integration_test_role.json}"
@@ -52,7 +56,8 @@ resource "aws_codebuild_project" "integration_test" {
   service_role = "${aws_iam_role.integration_test.arn}"
 
   artifacts {
-    type = "NO_ARTIFACTS"
+    type = "S3"
+    location = "build.hhttpserver.charemza.name"
   }
 
   environment {

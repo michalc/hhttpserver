@@ -3,4 +3,5 @@ version: 0.1
 phases:
   build:
     commands:
-      - echo Build started
+      - echo "Build started"
+      - ./bin/build
