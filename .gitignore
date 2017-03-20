@@ -17,3 +17,7 @@ cabal.sandbox.config
 *.eventlog
 .stack-work/
 cabal.project.local
+.terraform
+plan
+terraform.tfstate
+terraform.tfstate.backup
