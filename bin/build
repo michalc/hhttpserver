@@ -1,3 +1,8 @@
 #!/usr/bin/env bash
+echo "docker-compose build..."
 docker-compose build hhttpserver_build
+echo "Done"
+
+echo "docker-compose run..."
 docker-compose run hhttpserver_build ./bin/_build
+echo "Done"
