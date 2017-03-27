@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+set -e
+
 echo "docker-compose build..."
 docker-compose build hhttpserver_build
 echo "Done"

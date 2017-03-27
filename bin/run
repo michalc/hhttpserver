@@ -1,2 +1,5 @@
 #!/usr/bin/env bash
+
+set -e
+
 docker-compose run --service-ports hhttpserver_run ./bin/_run

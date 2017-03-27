@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+set -e
+
 echo "Building..."
 ghc hhttpserver.hs -o build/hhttpserver
 echo "Built"
