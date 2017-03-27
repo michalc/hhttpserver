@@ -1,11 +1,15 @@
 version: "2"
 services:
   hhttpserver_build:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.build
     volumes:
       - .:/code
   hhttpserver_run:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.run
     volumes:
       - .:/code
     ports:
