@@ -9,4 +9,4 @@ services:
     volumes:
       - .:/code
     ports:
-      - 8080:8080
+      - 8080:80

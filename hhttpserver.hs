@@ -88,7 +88,7 @@ isSafePath path = not (null path) && not (isInfixOf ".." path) && head path /= '
 ------------
 -- Constants
 
-port = 8080
+port = 80
 incomingBufferSize = 16384
 
 mimeTypes = fromList [
