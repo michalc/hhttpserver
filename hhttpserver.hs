@@ -1,4 +1,4 @@
-import Prelude hiding (readFile, log)
+import Prelude hiding (catch, readFile, log)
 
 import Control.Concurrent (forkIO)
 import Control.Exception (SomeException, catch, try)
