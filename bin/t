@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 source ~/.github/credentials
-terraform apply
+terraform apply "$@"
