@@ -1,7 +1,3 @@
 #!/usr/bin/env bash
-
-set -e
-
-ghc hhttpserver.hs
 echo "Starting server"
-./hhttpserver
+./build/hhttpserver
