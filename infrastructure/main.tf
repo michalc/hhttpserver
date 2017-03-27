@@ -201,7 +201,7 @@ resource "aws_codepipeline" "master_pipeline" {
       owner           = "AWS"
       provider        = "CodeBuild"
       input_artifacts = ["source"]
-      output_artifacts = ["build"]
+      output_artifacts = ["hhttpserver"]
       version         = "1"
 
       configuration {

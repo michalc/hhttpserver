@@ -11,4 +11,4 @@ phases:
       - ./bin/build
 artifacts:
   files:
-    - hhttpserver
+    - build/hhttpserver
