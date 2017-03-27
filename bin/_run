@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 echo "Starting server"
-./build/hhttpserver
+bash ./build/hhttpserver
