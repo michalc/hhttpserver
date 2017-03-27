@@ -81,10 +81,6 @@ resource "aws_codebuild_project" "integration_test" {
   build_timeout = "5"
   service_role = "${aws_iam_role.integration_test.arn}"
 
-  artifacts {
-    type = "CODEPIPELINE"
-  }
-
   environment {
     compute_type = "BUILD_GENERAL1_SMALL"
     image = "aws/codebuild/docker:1.12.1"
@@ -94,6 +90,11 @@ resource "aws_codebuild_project" "integration_test" {
   source {
     type = "CODEPIPELINE"
   }
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
 }
 
 resource "aws_iam_role" "master_pipeline" {
@@ -200,6 +201,7 @@ resource "aws_codepipeline" "master_pipeline" {
       owner           = "AWS"
       provider        = "CodeBuild"
       input_artifacts = ["source"]
+      output_artifacts = ["hhttpserver"]
       version         = "1"
 
       configuration {
