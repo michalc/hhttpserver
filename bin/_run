@@ -3,4 +3,4 @@
 set -e
 
 echo "Starting server"
-bash ./build/hhttpserver
+./build/hhttpserver
