@@ -7,5 +7,5 @@ docker-compose build hhttpserver_build
 echo "Done"
 
 echo "docker-compose run..."
-docker-compose run hhttpserver_build bash ./bin/_build
+docker-compose run --rm hhttpserver_build bash ./bin/_build
 echo "Done"

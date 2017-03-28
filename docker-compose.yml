@@ -14,3 +14,11 @@ services:
       - .:/code
     ports:
       - 8080:80
+  hhttpserver_test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    links:
+      - hhttpserver_run
+    volumes:
+      - .:/code
