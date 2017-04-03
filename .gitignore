@@ -21,3 +21,4 @@ cabal.project.local
 plan
 terraform.tfstate
 terraform.tfstate.backup
+.DS_Store

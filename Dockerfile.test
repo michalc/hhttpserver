@@ -9,8 +9,12 @@ RUN apt-get update
 RUN apt-get install -y ghc \
   && apt-get install -y cabal-install
 
+RUN apt-get install -y zlib1g-dev
+
 RUN cabal update
 
 RUN cabal install hspec
+RUN cabal install webdriver
+RUN cabal install hspec-webdriver
 
 WORKDIR /code/

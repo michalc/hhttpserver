@@ -1,17 +1,24 @@
--- file Spec.hs
-import Test.Hspec
-import Test.QuickCheck
-import Control.Exception (evaluate)
+{-# LANGUAGE OverloadedStrings #-}
+
+import Test.WebDriver hiding (runWD)
+import Test.Hspec.WebDriver
+
+config = useBrowser chrome defaultConfig { wdHost = "selenium", wdPort = 4444}
+
+allBrowsers :: [(Capabilities, String)]
+allBrowsers = [(chromeCaps, "Chrome")]
 
 main :: IO ()
-main = hspec $ do
-  describe "Prelude.head" $ do
-    it "returns the first element of a list" $ do
-      head [23 ..] `shouldBe` (23 :: Int)
+main = hspec $
+  describe "E2E smoke test" $ do
 
-    it "returns the first element of an *arbitrary* list" $
-      property $ \x xs -> head (x:xs) == (x :: Int)
+    sessionWith config "integration" $ using allBrowsers $ do
+      it "checks all text in p" $ runWD $ do
+        openPage "http://hhttpserver_run_for_test/test/files/index.html"
+        e <- findElem $ ByCSS "p"
+        e `shouldHaveText` ("Some HTML")
 
-    it "throws an exception if used with an empty list" $ do
-      evaluate (head []) `shouldThrow` anyException
- 
+      it "checks all text in p strong" $ runWD $ do
+        openPage "http://hhttpserver_run_for_test/test/files/index.html"
+        e <- findElem $ ByCSS "p strong"
+        e `shouldHaveText` ("HTML")

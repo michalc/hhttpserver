@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
-set -e
-
 docker-compose run --rm hhttpserver_test ./bin/_test
+exit_code=$?
+
+docker-compose down
+docker-compose rm -f
+exit $exit_code
