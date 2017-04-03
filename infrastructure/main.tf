@@ -89,6 +89,7 @@ resource "aws_codebuild_project" "integration_test" {
 
   source {
     type = "CODEPIPELINE"
+    buildspec = "${file("buildspec.build.yml")}"
   }
 
   artifacts {
