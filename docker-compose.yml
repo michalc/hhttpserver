@@ -2,23 +2,23 @@ version: "2"
 
 services:
 
-  hhttpserver_build:
+  build:
     build:
       context: .
       dockerfile: Dockerfile.build
     volumes:
       - .:/code
 
-  hhttpserver_run:
+  web:
     build:
       context: .
       dockerfile: Dockerfile.run
     volumes:
       - .:/code
     ports:
-      - 8080:80
+      - "8080:80"
 
-  hhttpserver_run_for_test:
+  web_test:
     build:
       context: .
       dockerfile: Dockerfile.run
@@ -27,7 +27,7 @@ services:
     expose:
       - "80"
 
-  hhttpserver_test:
+  test:
     build:
       context: .
       dockerfile: Dockerfile.test
@@ -39,6 +39,6 @@ services:
   selenium:
     image: selenium/standalone-chrome:2.53.1
     links:
-      - hhttpserver_run_for_test
+      - web_test
     expose:
      - "4444"

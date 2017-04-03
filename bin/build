@@ -2,10 +2,6 @@
 
 set -e
 
-echo "docker-compose build..."
-docker-compose build hhttpserver_build
-echo "Done"
 
-echo "docker-compose run..."
-docker-compose run --rm hhttpserver_build bash ./bin/_build
-echo "Done"
+docker-compose build build
+docker-compose run --rm build bash ./bin/_build
