@@ -13,7 +13,7 @@ To create the Pipeline, need gitub credentials in
 
 as
 
-    GITHUB_TOKEN=<the token>
+    export GITHUB_TOKEN=<the token>
 
 And then run terraform as
 
