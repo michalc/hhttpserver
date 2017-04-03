@@ -6,15 +6,13 @@ ENV LC_ALL C.UTF-8
 
 RUN apt-get update
 
-RUN apt-get install -y ghc \
-  && apt-get install -y cabal-install
-
-RUN apt-get install -y zlib1g-dev
+RUN apt-get install -y ghc=7.6.3-21 \
+  && apt-get install -y cabal-install=1.20.0.3-1
+  && apt-get install -y zlib1g-dev=1:1.2.8.dfsg-2+b1
 
 RUN cabal update
-
-RUN cabal install hspec
-RUN cabal install webdriver
-RUN cabal install hspec-webdriver
+RUN cabal install hspec-2.4.3 \
+  && cabal install webdriver-0.8.4 \
+  && cabal install hspec-webdriver-1.2.0
 
 WORKDIR /code/
