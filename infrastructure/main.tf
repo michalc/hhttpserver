@@ -95,7 +95,27 @@ resource "aws_codebuild_project" "build" {
   artifacts {
     type = "CODEPIPELINE"
   }
+}
 
+resource "aws_codebuild_project" "test" {
+  name = "hhttpserver_test"
+  build_timeout = "5"
+  service_role = "${aws_iam_role.runner.arn}"
+
+  environment {
+    compute_type = "BUILD_GENERAL1_SMALL"
+    image = "aws/codebuild/docker:1.12.1"
+    type = "LINUX_CONTAINER"
+  }
+
+  source {
+    type = "CODEPIPELINE"
+    buildspec = "${file("buildspec.test.yml")}"
+  }
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
 }
 
 resource "aws_iam_role" "master_pipeline" {
@@ -207,6 +227,24 @@ resource "aws_codepipeline" "master_pipeline" {
 
       configuration {
         ProjectName = "hhttpserver_build"
+      }
+    }
+  }
+
+  stage {
+    name = "Test"
+
+    action {
+      name            = "Test"
+      category        = "Test"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      input_artifacts = ["hhttpserver"]
+      output_artifacts = []
+      version         = "1"
+
+      configuration {
+        ProjectName = "hhttpserver_test"
       }
     }
   }
