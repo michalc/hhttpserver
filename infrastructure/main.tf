@@ -30,13 +30,6 @@ data "aws_iam_policy_document" "runner_assume_role" {
       type = "Service"
       identifiers = ["codebuild.amazonaws.com"]
     }
-    # condition {
-    #   test = "StringLike"
-    #   variable = "sts:ExternalId"
-    #   values = [
-    #     "arn:aws:codebuild:*:${var.account_id}:project/hhttpserver_*",
-    #   ]
-    # }
   }
 }
 
