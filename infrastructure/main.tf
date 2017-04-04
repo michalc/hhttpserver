@@ -15,12 +15,12 @@ resource "aws_s3_bucket" "artifacts" {
   bucket = "${var.artifact_bucket}"
 }
 
-resource "aws_iam_role" "integration_test" {
-  name = "hhttpserver_integration_test"
-  assume_role_policy = "${data.aws_iam_policy_document.integration_test_assume_role.json}"
+resource "aws_iam_role" "runner" {
+  name = "hhttpserver_runner"
+  assume_role_policy = "${data.aws_iam_policy_document.runner_assume_role.json}"
 }
 
-data "aws_iam_policy_document" "integration_test_assume_role" {
+data "aws_iam_policy_document" "runner_assume_role" {
   statement {
     effect = "Allow"
     actions = [
@@ -40,12 +40,12 @@ data "aws_iam_policy_document" "integration_test_assume_role" {
   }
 }
 
-resource "aws_iam_policy" "integration_test" {
-  name = "hhttpserver_integration_test"
-  policy = "${data.aws_iam_policy_document.integration_test.json}"
+resource "aws_iam_policy" "runner" {
+  name = "hhttpserver_runner"
+  policy = "${data.aws_iam_policy_document.runner.json}"
 }
 
-data "aws_iam_policy_document" "integration_test" {
+data "aws_iam_policy_document" "runner" {
   statement {
     effect = "Allow"
     actions = [
@@ -68,18 +68,18 @@ data "aws_iam_policy_document" "integration_test" {
   }
 }
 
-resource "aws_iam_policy_attachment" "integration_test" {
-  name = "hhttpserver_integration_test"
-  policy_arn = "${aws_iam_policy.integration_test.arn}"
+resource "aws_iam_policy_attachment" "runner" {
+  name = "hhttpserver_runner"
+  policy_arn = "${aws_iam_policy.runner.arn}"
   roles = [
-  	"${aws_iam_role.integration_test.id}"
+  	"${aws_iam_role.runner.id}"
   ]
 }
 
-resource "aws_codebuild_project" "integration_test" {
-  name = "hhttpserver_integration_test"
+resource "aws_codebuild_project" "build" {
+  name = "hhttpserver_build"
   build_timeout = "5"
-  service_role = "${aws_iam_role.integration_test.arn}"
+  service_role = "${aws_iam_role.runner.arn}"
 
   environment {
     compute_type = "BUILD_GENERAL1_SMALL"
@@ -206,7 +206,7 @@ resource "aws_codepipeline" "master_pipeline" {
       version         = "1"
 
       configuration {
-        ProjectName = "hhttpserver_integration_test"
+        ProjectName = "hhttpserver_build"
       }
     }
   }
