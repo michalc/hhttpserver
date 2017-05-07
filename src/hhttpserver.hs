@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 import Prelude hiding (catch, readFile, log)
 
 import Control.Concurrent (forkIO)
@@ -46,12 +48,12 @@ handle (conn, addr) = catch (sendResponse (conn, addr)) (send500 (conn, addr)) >
 
 sendResponse :: (Socket, SockAddr) -> IO ()
 sendResponse (conn, addr) = recv conn incomingBufferSize  >>=
-                            return . unpackHttpMessage    >>= log addr (T.pack "request")  >>=
-                            response . extractPath        >>= log addr (T.pack "response") >>=
+                            return . unpackHttpMessage    >>= log addr "request"  >>=
+                            response . extractPath        >>= log addr "response" >>=
                             send conn . packHttpMessage   >> return ()
 
 send500 :: (Socket, SockAddr) -> SomeException -> IO ()
-send500 (conn, addr) e = log addr (T.pack "error") e >> send conn (packHttpMessage http500) >> return ()
+send500 (conn, addr) e = log addr ("error") e >> send conn (packHttpMessage http500) >> return ()
 
 response :: T.Text -> IO HttpMessage
 response path = (isSafePath path) &&& (doesFileExist (T.unpack path)) >>= responseForPath path
@@ -80,13 +82,13 @@ wrapInHttpMessage :: T.Text -> ByteString -> HttpMessage
 wrapInHttpMessage mime contents = HttpMessage {header = T.pack $ printf (T.unpack headerOk) (T.unpack mime), contents = contents}
 
 extractPath :: HttpMessage -> T.Text
-extractPath = T.tail . head . tail . T.splitOn (T.pack " ") . header
+extractPath = T.tail . head . tail . T.splitOn (" ") . header
 
 mimeForPath :: T.Text -> T.Text
 mimeForPath path = findWithDefault defaultMime (T.pack $ takeExtension $ T.unpack path) mimeTypes
 
 isSafePath :: T.Text -> Bool
-isSafePath path = not (T.null path) && not (T.isInfixOf (T.pack "..") path) && T.head path /= '/'
+isSafePath path = not (T.null path) && not (T.isInfixOf ("..") path) && T.head path /= '/'
 
 ------------
 -- Constants
@@ -95,15 +97,15 @@ port = 80
 incomingBufferSize = 16384
 
 mimeTypes = fromList [
-    (T.pack ".html", T.pack "text/html"),
-    (T.pack ".jpeg", T.pack "image/jpeg")
+    (".html", "text/html"),
+    (".jpeg", "image/jpeg")
   ]
-defaultMime = T.pack "application/octet-stream"
+defaultMime = "application/octet-stream"
 
-headerOk = T.pack "HTTP/1.1 200 OK\r\nContent-Type: %s"
-http404 = HttpMessage {header=T.pack "HTTP/1.1 404 Not Found", contents=empty}
-http500 = HttpMessage {header=T.pack "HTTP/1.1 500 Internal Server Error", contents=empty}
-httpHeaderEnd = pack "\r\n\r\n"
+headerOk = "HTTP/1.1 200 OK\r\nContent-Type: %s"
+http404 = HttpMessage {header="HTTP/1.1 404 Not Found", contents=empty}
+http500 = HttpMessage {header="HTTP/1.1 500 Internal Server Error", contents=empty}
+httpHeaderEnd = "\r\n\r\n"
 
 logTemplate = "[%s] [%s] [%s] %s"
 maxLogLength = 1024
