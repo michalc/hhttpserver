@@ -19,6 +19,9 @@ import System.Directory (doesFileExist)
 import System.FilePath.Posix (takeExtension)
 import Text.Printf (printf)
 
+import qualified Data.Text as T
+import Data.Text.Encoding as E
+
 ---------------
 -- IO functions
 
@@ -32,9 +35,9 @@ main = socket AF_INET Stream 0 >>= \sock ->
 mainLoop :: Socket -> IO ()
 mainLoop sock = forever $ accept sock >>= forkIO . handle
 
-log :: (Show a) => SockAddr -> String -> a -> IO a
+log :: (Show a) => SockAddr -> T.Text -> a -> IO a
 log addr label val = getCurrentTime >>= \time ->
-                     putStrLn (printf logTemplate (show time) (show addr) label (take maxLogLength $ show val)) >>
+                     putStrLn (printf logTemplate (show time) (show addr) (T.unpack label) (take maxLogLength $ show val)) >>
                      return val
 
 handle :: (Socket, SockAddr) -> IO ()
@@ -43,19 +46,19 @@ handle (conn, addr) = catch (sendResponse (conn, addr)) (send500 (conn, addr)) >
 
 sendResponse :: (Socket, SockAddr) -> IO ()
 sendResponse (conn, addr) = recv conn incomingBufferSize  >>=
-                            return . unpackHttpMessage    >>= log addr "request"  >>=
-                            response . extractPath        >>= log addr "response" >>=
+                            return . unpackHttpMessage    >>= log addr (T.pack "request")  >>=
+                            response . extractPath        >>= log addr (T.pack "response") >>=
                             send conn . packHttpMessage   >> return ()
 
 send500 :: (Socket, SockAddr) -> SomeException -> IO ()
-send500 (conn, addr) e = log addr "error" e >> send conn (packHttpMessage http500) >> return ()
+send500 (conn, addr) e = log addr (T.pack "error") e >> send conn (packHttpMessage http500) >> return ()
 
-response :: String -> IO HttpMessage
-response path = (isSafePath path) &&& (doesFileExist path) >>= responseForPath path
+response :: T.Text -> IO HttpMessage
+response path = (isSafePath path) &&& (doesFileExist (T.unpack path)) >>= responseForPath path
 
-responseForPath :: String -> Bool -> IO HttpMessage
+responseForPath :: T.Text -> Bool -> IO HttpMessage
 responseForPath _    False = return http404
-responseForPath path True  = readFile path >>=
+responseForPath path True  = readFile (T.unpack path) >>=
                              return . wrapInHttpMessage (mimeForPath path)
 
 -- Short circuit && that accepts pure + IO action
@@ -67,23 +70,23 @@ True  &&& bIOAction = bIOAction
 -- Non IO functions
 
 unpackHttpMessage :: ByteString -> HttpMessage
-unpackHttpMessage byteString = HttpMessage {header = unpack header, contents = contents}
+unpackHttpMessage byteString = HttpMessage {header = E.decodeUtf8 header, contents = contents}
   where (header, contents) = breakSubstring httpHeaderEnd byteString
 
 packHttpMessage :: HttpMessage -> ByteString
-packHttpMessage HttpMessage {header = header, contents = contents} = pack header `append` httpHeaderEnd `append` contents 
+packHttpMessage HttpMessage {header = header, contents = contents} = (E.encodeUtf8 header) `append` httpHeaderEnd `append` contents 
 
-wrapInHttpMessage :: String -> ByteString -> HttpMessage
-wrapInHttpMessage mime contents = HttpMessage {header = printf headerOk mime, contents = contents}
+wrapInHttpMessage :: T.Text -> ByteString -> HttpMessage
+wrapInHttpMessage mime contents = HttpMessage {header = T.pack $ printf (T.unpack headerOk) (T.unpack mime), contents = contents}
 
-extractPath :: HttpMessage -> String
-extractPath = tail . head . tail . splitOn " " . header
+extractPath :: HttpMessage -> T.Text
+extractPath = T.tail . head . tail . T.splitOn (T.pack " ") . header
 
-mimeForPath :: String -> String
-mimeForPath path = findWithDefault defaultMime (takeExtension path) mimeTypes
+mimeForPath :: T.Text -> T.Text
+mimeForPath path = findWithDefault defaultMime (T.pack $ takeExtension $ T.unpack path) mimeTypes
 
-isSafePath :: String -> Bool
-isSafePath path = not (null path) && not (isInfixOf ".." path) && head path /= '/'
+isSafePath :: T.Text -> Bool
+isSafePath path = not (T.null path) && not (T.isInfixOf (T.pack "..") path) && T.head path /= '/'
 
 ------------
 -- Constants
@@ -92,14 +95,14 @@ port = 80
 incomingBufferSize = 16384
 
 mimeTypes = fromList [
-    (".html", "text/html"),
-    (".jpeg", "image/jpeg")
+    (T.pack ".html", T.pack "text/html"),
+    (T.pack ".jpeg", T.pack "image/jpeg")
   ]
-defaultMime = "application/octet-stream"
+defaultMime = T.pack "application/octet-stream"
 
-headerOk = "HTTP/1.1 200 OK\r\nContent-Type: %s"
-http404 = HttpMessage {header="HTTP/1.1 404 Not Found", contents=empty}
-http500 = HttpMessage {header="HTTP/1.1 500 Internal Server Error", contents=empty}
+headerOk = T.pack "HTTP/1.1 200 OK\r\nContent-Type: %s"
+http404 = HttpMessage {header=T.pack "HTTP/1.1 404 Not Found", contents=empty}
+http500 = HttpMessage {header=T.pack "HTTP/1.1 500 Internal Server Error", contents=empty}
 httpHeaderEnd = pack "\r\n\r\n"
 
 logTemplate = "[%s] [%s] [%s] %s"
@@ -109,6 +112,6 @@ maxLogLength = 1024
 -- Types
 
 data HttpMessage = HttpMessage {
-  header :: String,
+  header :: T.Text,
   contents :: ByteString
 } deriving (Show)
